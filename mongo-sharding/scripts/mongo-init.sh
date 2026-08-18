@@ -12,7 +12,7 @@ do
     done
 done
 
-echo "Сервисы MongoDb запущены"
+echo "Сервисы MongoDb готовы"
 
 # Инициализация сервера конфигурации
 
@@ -34,7 +34,7 @@ EOF
 docker compose exec -T shard1 mongosh --port 27018 --quiet <<EOF
 rs.initiate(
     {
-        _id : "shard1",
+        _id : "rs0",
         members: [
             { _id : 0, host : "shard1:27018" }
         ]
@@ -48,20 +48,31 @@ EOF
 docker compose exec -T shard2 mongosh --port 27019 --quiet <<EOF
 rs.initiate(
     {
-        _id : "shard2",
+        _id : "rs1",
         members: [
-            { _id : 1, host : "shard2:27019" }
+            { _id : 0, host : "shard2:27019" }
         ]
     }
 );
 exit();
 EOF
 
+# Ожидание готовности роутера
+
+echo "Ожидание готовности роутера"
+
+while [ "$(docker inspect -f '{{.State.Health.Status}}' mongosRouter)" != "healthy" ]; do
+    echo "..."
+    sleep 5
+done
+
+echo "Роутер готов"
+
 # Инициализация роутера
 
 docker compose exec -T mongosRouter mongosh --port 27020 --quiet <<EOF
-sh.addShard("shard1/shard1:27018");
-sh.addShard("shard2/shard2:27019");
+sh.addShard("rs0/shard1:27018");
+sh.addShard("rs1/shard2:27019");
 sh.enableSharding("somedb");
 sh.shardCollection("somedb.helloDoc", { "name" : "hashed" } );
 exit();

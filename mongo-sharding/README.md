@@ -1,6 +1,6 @@
 ## Как запустить
 
-1. Перейти в директорию с файлом compose.yaml
+1. Перейти в директорию mongo-sharding
 2. Запустить сервисы
     ```
     docker compose up -d
@@ -12,7 +12,7 @@
 
 ## Как проверить (вариант 1)
 
-В директории с файлом compose.yaml выполнить команду:
+В директории mongo-sharding выполнить команду:
 
 ```
 bash ./scripts/check.sh
@@ -92,8 +92,8 @@ http://localhost:8080/
     }
   },
   "shards": {
-    "shard1": "shard1/shard1:27018",
-    "shard2": "shard2/shard2:27019"
+    "shard1": "rs0/shard1:27018",
+    "shard2": "rs1/shard2:27019"
   },
   "cache_enabled": false,
   "status": "OK"
@@ -102,7 +102,7 @@ http://localhost:8080/
 
 ## Как остановить
 
-В директории с файлом compose.yaml выполнить команду:
+В директории mongo-sharding выполнить команду:
 
 ```
 docker compose down --volumes

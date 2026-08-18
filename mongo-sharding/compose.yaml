@@ -27,7 +27,7 @@ services:
             app-network:
         volumes:
             - shard1-data:/data/db
-        command: ["--shardsvr", "--replSet", "shard1", "--bind_ip_all", "--port", "27018"]
+        command: ["--shardsvr", "--replSet", "rs0", "--bind_ip_all", "--port", "27018"]
         healthcheck:
             test: ["CMD", "mongosh", "--port", "27018", "--eval", "db.adminCommand('ping')"]
             interval: 5s
@@ -43,7 +43,7 @@ services:
             app-network:
         volumes:
             - shard2-data:/data/db
-        command: ["--shardsvr", "--replSet", "shard2", "--bind_ip_all", "--port", "27019"]
+        command: ["--shardsvr", "--replSet", "rs1", "--bind_ip_all", "--port", "27019"]
         healthcheck:
             test: ["CMD", "mongosh", "--port", "27019", "--eval", "db.adminCommand('ping')"]
             interval: 5s
