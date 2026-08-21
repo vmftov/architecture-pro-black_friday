@@ -1,0 +1,87 @@
+#!/bin/bash
+
+# Ожидание готовности сервисов MongoDb
+
+echo "Ожидание готовности сервисов MongoDb"
+
+for service in configSrv shard1 shard2
+do
+    while [ "$(docker inspect -f '{{.State.Health.Status}}' $service)" != "healthy" ]; do
+        echo "..."
+        sleep 5
+    done
+done
+
+echo "Сервисы MongoDb готовы"
+
+# Инициализация сервера конфигурации
+
+docker compose exec -T configSrv mongosh --port 27017 --quiet <<EOF
+rs.initiate(
+  {
+        _id : "config_server",
+        configsvr: true,
+        members: [
+            { _id : 0, host : "configSrv:27017" }
+        ]
+  }
+);
+exit();
+EOF
+
+# Инициализация шарда 1
+
+docker compose exec -T shard1 mongosh --port 27018 --quiet <<EOF
+rs.initiate(
+    {
+        _id : "rs0",
+        members: [
+            { _id : 0, host : "shard1:27018" }
+        ]
+    }
+);
+exit();
+EOF
+
+# Инициализация шарда 2
+
+docker compose exec -T shard2 mongosh --port 27019 --quiet <<EOF
+rs.initiate(
+    {
+        _id : "rs1",
+        members: [
+            { _id : 0, host : "shard2:27019" }
+        ]
+    }
+);
+exit();
+EOF
+
+# Ожидание готовности роутера
+
+echo "Ожидание готовности роутера"
+
+while [ "$(docker inspect -f '{{.State.Health.Status}}' mongosRouter)" != "healthy" ]; do
+    echo "..."
+    sleep 5
+done
+
+echo "Роутер готов"
+
+# Инициализация роутера
+
+docker compose exec -T mongosRouter mongosh --port 27020 --quiet <<EOF
+sh.addShard("rs0/shard1:27018");
+sh.addShard("rs1/shard2:27019");
+sh.enableSharding("somedb");
+sh.shardCollection("somedb.helloDoc", { "name" : "hashed" } );
+exit();
+EOF
+
+# Инициализация БД
+
+docker compose exec -T mongosRouter mongosh --port 27020 --quiet <<EOF
+use somedb;
+for(var i = 0; i < 1000; i++) db.helloDoc.insertOne({age:i, name:"ly"+i});
+exit();
+EOF
